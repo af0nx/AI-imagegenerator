@@ -7,8 +7,8 @@ dotenv.config();
 
 const app = express();
 
-// Configurar o middleware do CORS
 app.use(cors());
+app.use(express.json()); // Middleware para interpretar o corpo da requisição como JSON
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -16,11 +16,12 @@ const replicate = new Replicate({
 });
 
 app.post('/run-replicate', async (req, res) => {
+  const { prompt } = req.body; // Extrair o prompt do corpo da requisição
   const model = 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
   const input = {
     width: 768,
     height: 768,
-    prompt: 'an monkey with a pillow',
+    prompt,
     refine: 'expert_ensemble_refiner',
     scheduler: 'K_EULER',
     lora_scale: 0.6,
