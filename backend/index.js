@@ -1,53 +1,43 @@
-import express from 'express';
-import Replicate from 'replicate';
-import dotenv from 'dotenv';
-import cors from 'cors';
+import React, { useState } from 'react';
+import axios from 'axios';
 
-dotenv.config();
+const DashboardTextToImage = () => {
+  const [output, setOutput] = useState(null);
+  const [prompt, setPrompt] = useState('');
 
-const app = express();
-
-app.use(cors());
-app.use(express.json()); // Middleware para interpretar o corpo da requisição como JSON
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-  userAgent: 'https://www.npmjs.com/package/create-replicate'
-});
-
-app.post('/run-replicate', async (req, res) => {
-  const { prompt } = req.body; // Extrair o prompt do corpo da requisição
   const model = 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
-  const input = {
-    width: 768,
-    height: 768,
-    prompt,
-    refine: 'expert_ensemble_refiner',
-    scheduler: 'K_EULER',
-    lora_scale: 0.6,
-    num_outputs: 1,
-    guidance_scale: 7.5,
-    apply_watermark: false,
-    high_noise_frac: 0.8,
-    negative_prompt: '',
-    prompt_strength: 0.8,
-    num_inference_steps: 25,
+
+  const fetchOutputFromBackend = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/run-replicate', {
+        prompt // Enviar o prompt para o backend
+      });
+      setOutput(response.data);
+    } catch (error) {
+      console.error('Erro ao fazer requisição ao backend:', error);
+    }
   };
 
-  console.log({ model, input });
-  console.log('Running...');
+  return (
+    <div>
+      <h1>Frontend</h1>
+      <input 
+        type="text" 
+        value={prompt} 
+        onChange={(e) => setPrompt(e.target.value)} // Atualizar o estado do prompt quando o valor do input mudar
+        placeholder="Digite o prompt"
+      />
+      <button onClick={fetchOutputFromBackend}>Executar Replicate no Backend</button>
+      {output && (
+        <div>
+          <h2>Resultado do Backend:</h2>
+          <pre>{JSON.stringify(output, null, 2)}</pre>
+          {/* Exibir a imagem recebida */}
+          <img src={output[0]} alt="Resultado" />
+        </div>
+      )}
+    </div>
+  );
+};
 
-  try {
-    const output = await replicate.run(model, { input });
-    console.log('Done!', output);
-    res.json(output);
-  } catch (error) {
-    console.error('Erro ao executar o replicate:', error);
-    res.status(500).json({ error: 'Erro ao executar o replicate' });
-  }
-});
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+export default DashboardTextToImage;
